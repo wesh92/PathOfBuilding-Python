@@ -102,7 +102,41 @@ class ColorCodes(BaseModel):
             ColorCode.POSITIVE: "^x33FF77",
             ColorCode.NEGATIVE: "^xDD0022",
             ColorCode.HIGHLIGHT: "^xFF0000",
-            # ... (remaining color codes)
+            ColorCode.OFFENCE: "^xE07030",
+            ColorCode.DEFENCE: "^x8080E0",
+            # Character classes
+            ColorCode.SCION: "^xFFF0F0",
+            ColorCode.MARAUDER: "^xE05030",
+            ColorCode.RANGER: "^x70FF70",
+            ColorCode.WITCH: "^x7070FF",
+            ColorCode.DUELIST: "^xE0E070",
+            ColorCode.TEMPLAR: "^xC040FF",
+            ColorCode.SHADOW: "^x30C0D0",
+            # Equipment slots
+            ColorCode.MAINHAND: "^x50FF50",
+            ColorCode.MAINHANDBG: "^x071907",
+            ColorCode.OFFHAND: "^xB7B7FF",
+            ColorCode.OFFHANDBG: "^x070719",
+            # Influence types
+            ColorCode.SHAPER: "^x55BBFF",
+            ColorCode.ELDER: "^xAA77CC",
+            ColorCode.FRACTURED: "^xA29160",
+            ColorCode.ADJUDICATOR: "^xE9F831",
+            ColorCode.BASILISK: "^x00CB3A",
+            ColorCode.CRUSADER: "^x2946FC",
+            ColorCode.EYRIE: "^xAAB7B8",
+            # Status effects
+            ColorCode.CLEANSING: "^xF24141",
+            ColorCode.TANGLE: "^x038C8C",
+            ColorCode.CHILLBG: "^x151e26",
+            ColorCode.FREEZEBG: "^x0c262b",
+            ColorCode.SHOCKBG: "^x191732",
+            ColorCode.SCORCHBG: "^x270b00",
+            ColorCode.BRITTLEBG: "^x00122b",
+            ColorCode.SAPBG: "^x261500",
+            # Other
+            ColorCode.SCOURGE: "^xFF6E25",
+            ColorCode.CRUCIBLE: "^xFFA500"
         })
 
         # Add derived color codes
