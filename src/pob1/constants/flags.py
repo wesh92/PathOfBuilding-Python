@@ -44,6 +44,32 @@ class ModFlag(IntFlag):
     WEAPON_1H = 0x10000000
     WEAPON_2H = 0x20000000
     WEAPON_MASK = 0x2FFF0000
+    
+    @classmethod
+    def verify_weapon_flags(cls, flags: 'ModFlag') -> bool:
+        """Verify weapon flags are consistent."""
+        weapon_type_flags = (cls.AXE | cls.BOW | cls.CLAW | cls.DAGGER | 
+                           cls.MACE | cls.STAFF | cls.SWORD | cls.WAND | 
+                           cls.UNARMED | cls.FISHING)
+        weapon_class_flags = cls.WEAPON_MELEE | cls.WEAPON_RANGED | cls.WEAPON_1H | cls.WEAPON_2H
+        
+        # A weapon flag cannot be both melee and ranged
+        assert not (flags & cls.WEAPON_MELEE and flags & cls.WEAPON_RANGED), \
+            "Weapon cannot be both melee and ranged"
+            
+        # A weapon flag cannot be both 1H and 2H
+        assert not (flags & cls.WEAPON_1H and flags & cls.WEAPON_2H), \
+            "Weapon cannot be both one-handed and two-handed"
+            
+        # If any weapon type is set, the WEAPON flag should be set
+        if flags & weapon_type_flags:
+            assert flags & cls.WEAPON, "WEAPON flag must be set when weapon type is specified"
+            
+        # If weapon class flags are set, at least one weapon type should be set
+        if flags & weapon_class_flags:
+            assert flags & weapon_type_flags, "Weapon type must be specified with weapon class"
+            
+        return True
 
 
 class KeywordFlag(IntFlag):
@@ -86,27 +112,47 @@ class KeywordFlag(IntFlag):
     
     # Special flags
     MATCH_ALL = 0x40000000
+    
+    @classmethod
+    def verify_damage_types(cls, flags: 'KeywordFlag') -> bool:
+        """Verify damage type flags are consistent."""
+        element_flags = cls.FIRE | cls.COLD | cls.LIGHTNING | cls.CHAOS | cls.PHYSICAL
+        
+        # If a DOT type is specified, the base damage type should also be specified
+        if flags & cls.PHYSICAL_DOT:
+            assert flags & cls.PHYSICAL, "Physical base type required for physical DOT"
+        if flags & cls.FIRE_DOT:
+            assert flags & cls.FIRE, "Fire base type required for fire DOT"
+        if flags & cls.COLD_DOT:
+            assert flags & cls.COLD, "Cold base type required for cold DOT"
+        if flags & cls.LIGHTNING_DOT:
+            assert flags & cls.LIGHTNING, "Lightning base type required for lightning DOT"
+        if flags & cls.CHAOS_DOT:
+            assert flags & cls.CHAOS, "Chaos base type required for chaos DOT"
+            
+        # If it's an ailment, it should have a damage type
+        if flags & cls.AILMENT:
+            assert flags & element_flags, "Ailment requires a damage type"
+            
+        return True
+
 
 
 def match_keyword_flags(keyword_flags: int, mod_keyword_flags: int) -> bool:
-    """
-    Compare KeywordFlags to determine if the mod's flags are satisfied.
+    """Compare KeywordFlags to determine if the mod's flags are satisfied."""
+    # Pre-condition assertions
+    assert isinstance(keyword_flags, int), f"keyword_flags must be int, got {type(keyword_flags)}"
+    assert isinstance(mod_keyword_flags, int), f"mod_keyword_flags must be int, got {type(mod_keyword_flags)}"
     
-    Args:
-        keyword_flags: The KeywordFlags to be compared to
-        mod_keyword_flags: The KeywordFlags stored in the mod
-        
-    Returns:
-        Whether the KeywordFlags in the mod are satisfied
-        
-    Note:
-        If MATCH_ALL is set in mod_keyword_flags, all flags must match.
-        Otherwise, any matching flag satisfies the condition.
-    """
     match_all = bool(mod_keyword_flags & KeywordFlag.MATCH_ALL)
     mod_keyword_flags &= ~KeywordFlag.MATCH_ALL
     keyword_flags &= ~KeywordFlag.MATCH_ALL
     
-    if match_all:
-        return (keyword_flags & mod_keyword_flags) == mod_keyword_flags
-    return mod_keyword_flags == 0 or (keyword_flags & mod_keyword_flags) != 0
+    # Assert the masks are properly cleared
+    assert not (keyword_flags & KeywordFlag.MATCH_ALL), "MATCH_ALL not properly cleared from keyword_flags"
+    assert not (mod_keyword_flags & KeywordFlag.MATCH_ALL), "MATCH_ALL not properly cleared from mod_keyword_flags"
+    
+    result = (keyword_flags & mod_keyword_flags) == mod_keyword_flags if match_all \
+        else mod_keyword_flags == 0 or (keyword_flags & mod_keyword_flags) != 0
+        
+    return result

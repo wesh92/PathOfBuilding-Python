@@ -7,7 +7,7 @@ consistent styling and visual feedback.
 from enum import Enum
 from typing import Dict, Optional, Tuple
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ColorCode(str, Enum):
@@ -140,56 +140,82 @@ class ColorCodes(BaseModel):
         })
 
         # Add derived color codes
-        self.codes["STRENGTH"] = self.codes[ColorCode.MARAUDER]
-        self.codes["DEXTERITY"] = self.codes[ColorCode.RANGER]
-        self.codes["INTELLIGENCE"] = self.codes[ColorCode.WITCH]
+        derived_mappings = {
+            "STRENGTH": ColorCode.MARAUDER,
+            "DEXTERITY": ColorCode.RANGER,
+            "INTELLIGENCE": ColorCode.WITCH,
+            "LIFE": ColorCode.MARAUDER,
+            "MANA": ColorCode.WITCH,
+            "ES": ColorCode.SOURCE,
+            "WARD": ColorCode.RARE,
+            "ARMOUR": ColorCode.NORMAL,
+            "EVASION": ColorCode.POSITIVE,
+            "RAGE": ColorCode.WARNING,
+            "PHYS": ColorCode.NORMAL
+        }
         
-        self.codes["LIFE"] = self.codes[ColorCode.MARAUDER]
-        self.codes["MANA"] = self.codes[ColorCode.WITCH]
-        self.codes["ES"] = self.codes[ColorCode.SOURCE]
-        self.codes["WARD"] = self.codes[ColorCode.RARE]
-        self.codes["ARMOUR"] = self.codes[ColorCode.NORMAL]
-        self.codes["EVASION"] = self.codes[ColorCode.POSITIVE]
-        self.codes["RAGE"] = self.codes[ColorCode.WARNING]
-        self.codes["PHYS"] = self.codes[ColorCode.NORMAL]
+        # Assert and add derived colors
+        for derived, base in derived_mappings.items():
+            assert base in self.codes, f"Base color {base} not found for derived color {derived}"
+            self.codes[derived] = self.codes[base]
+    
+    @field_validator('codes')
+    def validate_color_codes(cls, codes: Dict[str, str]) -> Dict[str, str]:
+        """Validate all color codes follow the correct format."""
+        for code_name, color_value in codes.items():
+            # Assert color codes start with the prefix
+            assert color_value.startswith("^x"), f"Color code {code_name} must start with '^x'"
+            # Assert color codes are the correct length (prefix + 6 hex chars)
+            assert len(color_value) == 8, f"Color code {code_name} must be 8 characters (^x + 6 hex)"
+            # Assert the hex portion contains valid hex characters
+            hex_part = color_value[2:]
+            assert all(c in "0123456789ABCDEFabcdef" for c in hex_part), \
+                f"Color code {code_name} contains invalid hex characters"
+        return codes
+
+    @field_validator('rgb_highlight')
+    def validate_rgb_values(cls, rgb: Optional[Tuple[float, float, float]]) -> Optional[Tuple[float, float, float]]:
+        """Validate RGB values are within the correct range."""
+        if rgb is not None:
+            for component in rgb:
+                assert 0 <= component <= 1, f"RGB value {component} must be between 0 and 1"
+        return rgb
 
     def update_color_code(self, code: str, color: str) -> None:
-        """
-        Update a specific color code.
-        
-        Args:
-            code: The color code to update
-            color: The new color value
+            """Update a specific color code."""
+            # Pre-condition assertions
+            assert code in self.codes, f"Invalid color code: {code}"
+            assert color.startswith(("^", "0", "#")), f"Invalid color format: {color}"
             
-        Note:
-            Updates the RGB highlight color if the HIGHLIGHT code is modified
-        """
-        if code in self.codes:
+            # Clean the color value
             color = color.replace("^0", "^")
+            if color.startswith(("0", "#")):
+                color = f"^x{color.replace('0x', '').replace('#', '')}"
+            
+            # Post-condition assertions
+            assert len(color) == 8, f"Invalid color length after processing: {color}"
+            assert color.startswith("^x"), f"Invalid color prefix after processing: {color}"
+            
             self.codes[code] = color
             if code == ColorCode.HIGHLIGHT:
                 self.rgb_highlight = self.hex_to_rgb(color)
 
     @staticmethod
     def hex_to_rgb(hex_color: str) -> Optional[Tuple[float, float, float]]:
-        """
-        Convert a hex color string to RGB values.
+        """Convert a hex color string to RGB values."""
+        # Pre-condition assertions
+        assert isinstance(hex_color, str), f"Expected string, got {type(hex_color)}"
         
-        Args:
-            hex_color: Hex color string (with or without 0x/# prefix)
-            
-        Returns:
-            Tuple of RGB values normalized to 0-1 range, or None if invalid
-        """
         hex_color = hex_color.replace("0x", "").replace("#", "")
         if len(hex_color) != 6:
             return None
             
         try:
-            r = int(hex_color[0:2], 16) / 255
-            g = int(hex_color[2:4], 16) / 255
-            b = int(hex_color[4:6], 16) / 255
-            return (r, g, b)
+            rgb_values = tuple(int(hex_color[i:i+2], 16) / 255 for i in (0, 2, 4))
+            # Post-condition assertions
+            assert len(rgb_values) == 3, "RGB conversion failed to produce 3 values"
+            assert all(0 <= v <= 1 for v in rgb_values), "RGB values out of range"
+            return rgb_values  # type: ignore[return-value] # Tuple[float, float, float]
         except ValueError:
             return None
 
@@ -197,3 +223,7 @@ class ColorCodes(BaseModel):
 # Global instance
 COLOR_CODES = ColorCodes()
 DEFAULT_COLOR_CODES = ColorCodes()  # For reset capability
+
+# Verify global instances are properly initialized
+assert COLOR_CODES.codes == DEFAULT_COLOR_CODES.codes, "Default and active color codes should match on initialization"
+assert all(code in COLOR_CODES.codes for code in ColorCode), "Missing color codes in global instance"
