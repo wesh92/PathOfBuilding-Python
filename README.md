@@ -11,9 +11,8 @@ Modern Python Port of Path of Building
 
 ## Tools Used And Recommended
 
-- Poetry (**Required**), a modern virtual environment manager and dependency resolver.
-- Pyenv (*Recommended*), a tool used to manage multiple python versions. While we will target Python 3.12.7 to begin with version updates will be important as well as backtesting and this makes it a little easier.
-- Black/Ruff (**Required**), 2 opinionated formatter/linters.
+- UV (**Required**), a modern virtual environment manager, Python version manager, and dependency resolver.
+- Ruff (**Required**), an opinionated formatter/linter.
 
 ## Contributions
 

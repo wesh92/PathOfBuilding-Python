@@ -27,10 +27,8 @@ Before you begin, please make sure you have:
 
 We use several tools to maintain code quality and consistency:
 
-- **Poetry**: A dependency management and packaging tool that simplifies Python project management.
+- **UV**: A dependency management and packaging tool that simplifies Python project management.
 - **Ruff**: A fast Python linter that helps catch errors and enforce coding standards.
-- **Black**: An opinionated code formatter that ensures consistent code style across the project.
-- **pyenv**: A tool for managing multiple Python versions, ensuring consistent development environments.
 
 These tools help us maintain a high standard of code quality, improve collaboration, and reduce the time spent on code formatting and style discussions.
 
@@ -41,18 +39,15 @@ These tools help us maintain a high standard of code quality, improve collaborat
    git clone git@github.com:wesh92/PathOfBuilding-Python.git
    cd PathOfBuilding-Python
    ```
-2. We recommend using `pyenv` to manage Python versions. Install it following the instructions [here](https://github.com/pyenv/pyenv#installation).
-3. Install the project's Python version:
+2. Install `UV`.
    ```
-   pyenv install $(cat .python-version)
+   https://docs.astral.sh/uv/getting-started/installation/
    ```
-4. Install Poetry for dependency management:
+3. Start the venv/sync
    ```
-   curl -sSL https://install.python-poetry.org | python3 -
-   ```
-5. Install the project dependencies:
-   ```
-   poetry install
+   uv venv
+   # or uv sync
+   # if you already have a local venv
    ```
 
 ## GPG Commit Signing
@@ -103,19 +98,16 @@ By using GPG signing, you help ensure the integrity and authenticity of your con
    git checkout -b feature/module-group-affected-or-added/ISSUE-#-feature-stuff
    ```
 3. Make your changes, ensuring you follow the code style guidelines.
-4. Format your code using Black:
+4. Run Ruff to check for linting errors:
    ```
-   poetry run black .
+   uv run ruff check .
+   uv run ruff format .
    ```
-5. Run Ruff to check for linting errors:
-   ```
-   poetry run ruff check .
-   ```
-6. Commit your changes with a clear and descriptive commit message, signing your commit:
+5. Commit your changes with a clear and descriptive commit message, signing your commit:
    ```
    git commit -S -m "Add feature: description of your changes"
    ```
-7. Push your changes to your fork:
+6. Push your changes to your fork:
    ```
    git push
    ```
@@ -133,7 +125,7 @@ By using GPG signing, you help ensure the integrity and authenticity of your con
 > [!IMPORTANT]
 > Please see the CODE_STYLE.md for more detailed information. Reading this section should not supplant anything in that document!
 
-- Use Black for code formatting to ensure consistency.
+- Use Ruff for code formatting to ensure consistency.
 - Use Ruff for linting to catch potential errors and style issues.
 - Use meaningful variable and function names (avoid single letter names, for instance).
 - Write clear comments and docstrings for functions and classes.
