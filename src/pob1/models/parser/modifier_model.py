@@ -1,5 +1,5 @@
-from typing import Optional, List, Tuple
-from pydantic import BaseModel, Field, validator
+from typing import Optional
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 from enum import Enum
 import re
 
@@ -36,11 +36,12 @@ class ModifierForm(Enum):
 class ModifierPattern(BaseModel):
     """
     Represents a single modifier pattern and its form.
+    
     """
     pattern: str = Field(..., description="The regular expression pattern to match")
     form: ModifierForm = Field(..., description="The form this pattern corresponds to")
     
-    @validator('pattern')
+    @field_validator('pattern')
     def validate_pattern(cls, v: str) -> str:
         """
         Validates that the pattern is a valid regular expression and
@@ -64,17 +65,18 @@ class ModifierPattern(BaseModel):
             raise ValueError(f"Invalid regular expression pattern: {e}")
         return pattern
 
-    def match(self, text: str) -> Optional[List[str]]:
+    def match(self, text: str) -> Optional[list[str]]:
         """
         Attempts to match the given text against this pattern.
+        Only returns matches that match the entire string.
         
         Args:
             text: The text to match against the pattern
             
         Returns:
-            Optional[List[str]]: List of captured groups if matched, None otherwise
+            Optional[list[str]]: list of captured groups if matched, None otherwise
         """
-        match = re.match(self.pattern, text)
+        match = re.fullmatch(self.pattern, text)
         if match:
             return list(match.groups())
         return None
@@ -99,9 +101,17 @@ class DamageModifier(ModifierType):
     Represents damage range modifiers.
     Examples: "adds 1 to 10 physical damage"
     """
-    min_damage: float = Field(..., description="Minimum damage value")
-    max_damage: float = Field(..., description="Maximum damage value")
+    min_damage: float = Field(..., gt=0, description="Minimum damage value")
+    max_damage: float = Field(..., gt=0, description="Maximum damage value")
     damage_type: str = Field(..., description="Type of damage")
+
+    @field_validator('max_damage')
+    def validate_damage_range(cls, v: float, info: ValidationInfo) -> float:
+        """Validates that max damage is greater than or equal to min damage."""
+        min_damage = info.data.get('min_damage')
+        if min_damage is not None and v < min_damage:
+            raise ValueError("Maximum damage must be greater than or equal to minimum damage")
+        return v
 
 class RegenerationModifier(ModifierType):
     """
@@ -111,12 +121,23 @@ class RegenerationModifier(ModifierType):
     value: float = Field(..., description="The regeneration/degeneration value")
     resource: str = Field(..., description="The resource being regenerated/degenerated")
 
+class ErrorModifier(ModifierType):
+    """
+    Represents an error when parsing a modifier.
+    """
+    error: str = Field(..., description="The error message")
+    value: float = Field(0, description="The numeric value of the modifier")
+    resource: str = Field("", description="The resource being regenerated/degenerated")
+    min_damage: float = Field(0, description="Minimum damage value")
+    max_damage: float = Field(0, description="Maximum damage value")
+    damage_type: str = Field("", description="Type of damage")
+
 class ModifierManager:
     """
     Manages the collection of modifier patterns and handles parsing modifier strings.
     """
     def __init__(self):
-        self.patterns: List[ModifierPattern] = []
+        self.patterns: list[ModifierPattern] = []
         
     def add_pattern(self, pattern: str, form: ModifierForm) -> None:
         """
@@ -165,7 +186,7 @@ class ModifierManager:
                         form=pattern.form,
                         value=float(matches[0]) if matches else 0
                     )
-        return None
+        return ErrorModifier(text=text, form=ModifierForm.BASE if not text else ModifierForm.OVERRIDE, error="Invalid modifier")
 
 def create_modifier_manager() -> ModifierManager:
     """Creates and initializes a ModifierManager with predefined modifier patterns.
